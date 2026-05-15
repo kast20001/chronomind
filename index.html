@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChronoMind — календарь с ИИ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #181b24;
+      --surface2: #1f2430;
+      --border: #2a3142;
+      --text: #e8eaef;
+      --muted: #8b93a7;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #10b981;
+      --radius: 12px;
+      --shadow: 0 8px 32px rgba(0,0,0,.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+    .sidebar {
+      width: 380px;
+      min-width: 320px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+    }
+    .brand {
+      padding: 20px 20px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 14px;
+    }
+    .brand h1 { font-size: 1.1rem; font-weight: 600; }
+    .brand p { font-size: 0.75rem; color: var(--muted); }
+    .ai-badge {
+      margin: 0 20px 12px;
+      padding: 8px 12px;
+      background: rgba(99,102,241,.12);
+      border: 1px solid rgba(99,102,241,.25);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #a5b4fc;
+    }
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg {
+      max-width: 92%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+    }
+    .msg.thinking { opacity: .6; font-style: italic; }
+    .chat-input {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+    .chat-input input:focus { border-color: var(--accent); }
+    .chat-input button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: 0 16px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+    }
+    .chat-input button:hover { background: var(--accent-hover); }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .toolbar {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .toolbar h2 { font-size: 1.35rem; font-weight: 600; }
+    .toolbar-actions { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.85rem;
+    }
+    .btn:hover { border-color: var(--muted); }
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.primary:hover { background: var(--accent-hover); }
+    .cal-wrap {
+      flex: 1;
+      padding: 20px 24px 24px;
+      overflow: auto;
+    }
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .weekdays span {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day {
+      min-height: 100px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+      cursor: pointer;
+      transition: border-color .15s, transform .1s;
+    }
+    .day:hover { border-color: var(--accent); }
+    .day.other { opacity: .35; }
+    .day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .day.selected { background: rgba(99,102,241,.08); border-color: var(--accent); }
+    .day-num {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    .day.today .day-num { color: var(--accent); }
+    .pill {
+      font-size: 0.68rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+      cursor: pointer;
+    }
+    .pill:hover { filter: brightness(1.1); }
+    .more { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+    .detail-panel {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: 360px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transform: translateX(100%);
+      transition: transform .25s ease;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-panel.open { transform: translateX(0); }
+    .detail-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .detail-header h3 { font-size: 1.1rem; max-width: 260px; }
+    .detail-body { padding: 20px; flex: 1; overflow-y: auto; }
+    .detail-body dt { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; margin-top: 14px; }
+    .detail-body dd { margin-top: 4px; font-size: 0.9rem; }
+    .detail-actions {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .detail-actions .btn.danger { color: #f87171; border-color: #7f1d1d; }
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.4);
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+      z-index: 40;
+    }
+    .overlay.show { opacity: 1; pointer-events: auto; }
+    .modal {
+      position: fixed;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%) scale(.95);
+      opacity: 0;
+      pointer-events: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: min(420px, 92vw);
+      z-index: 60;
+      transition: opacity .2s, transform .2s;
+    }
+    .modal.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+    .modal h3 { margin-bottom: 16px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+    .field input, .field textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font: inherit;
+    }
+    .field textarea { resize: vertical; min-height: 60px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 16px 8px;
+    }
+    .suggestions button {
+      font-size: 0.72rem;
+      padding: 6px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .suggestions button:hover { border-color: var(--accent); color: var(--text); }
+    @media (max-width: 900px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">CM</div>
+      <div>
+        <h1>ChronoMind</h1>
+        <p>Календарь с ИИ-ассистентом</p>
+      </div>
+    </div>
+    <div class="ai-badge">● Работает в браузере (GitHub Pages)</div>
+    <div class="suggestions" id="suggestions"></div>
+    <div class="chat" id="chat"></div>
+    <form class="chat-input" id="chatForm">
+      <input type="text" id="chatInput" placeholder="Например: созвон завтра в 15:00" autocomplete="off" />
+      <button type="submit">→</button>
+    </form>
+  </aside>
+
+  <main class="main">
+    <header class="toolbar">
+      <div>
+        <button class="btn" id="prevMonth">‹</button>
+        <button class="btn" id="todayBtn" style="margin:0 6px">Сегодня</button>
+        <button class="btn" id="nextMonth">›</button>
+        <h2 id="monthLabel" style="display:inline;margin-left:12px"></h2>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn primary" id="newEventBtn">+ Событие</button>
+      </div>
+    </header>
+    <div class="cal-wrap">
+      <div class="weekdays" id="weekdays"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h3 id="detailTitle">—</h3>
+      <button class="btn" id="closeDetail">✕</button>
+    </div>
+    <dl class="detail-body" id="detailBody"></dl>
+    <div class="detail-actions">
+      <button class="btn danger" id="deleteEvent">Удалить</button>
+      <button class="btn" id="closeDetail2">Закрыть</button>
+    </div>
+  </aside>
+
+  <div class="modal" id="modal">
+    <h3>Новое событие</h3>
+    <form id="eventForm">
+      <div class="field"><label>Название</label><input name="title" required /></div>
+      <div class="field"><label>Дата</label><input name="date" type="date" required /></div>
+      <div class="field"><label>Время (пусто = весь день)</label><input name="time" type="time" /></div>
+      <div class="field"><label>Место</label><input name="location" /></div>
+      <div class="field"><label>Описание</label><textarea name="description"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="cancelModal">Отмена</button>
+        <button type="submit" class="btn primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+<script>
+
+const COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const RU_MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const EN_DAYS = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+function mon0(d) { return (d.getDay() + 6) % 7; }
+
+function parseRelativeDay(text, base) {
+  const t = text.toLowerCase();
+  if (t.includes("сегодня") || t.includes("today")) return new Date(base);
+  if (t.includes("завтра") || t.includes("tomorrow")) { const d = new Date(base); d.setDate(d.getDate()+1); return d; }
+  if (t.includes("послезавтра")) { const d = new Date(base); d.setDate(d.getDate()+2); return d; }
+  let m = t.match(/через\s+(\d+)\s+дн/);
+  if (m) { const d = new Date(base); d.setDate(d.getDate()+ +m[1]); return d; }
+  for (let i = 0; i < WEEKDAYS.length; i++) {
+    if (t.includes(WEEKDAYS[i].toLowerCase()) || t.includes(EN_DAYS[i])) {
+      let delta = (i - mon0(base) + 7) % 7;
+      if (delta === 0) delta = 7;
+      const d = new Date(base); d.setDate(d.getDate() + delta); return d;
+    }
+  }
+  m = t.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
+  if (m) {
+    let y = m[3] ? parseInt(m[3], 10) : base.getFullYear();
+    if (y < 100) y += 2000;
+    const d = new Date(y, parseInt(m[2],10)-1, parseInt(m[1],10));
+    if (!isNaN(d)) return d;
+  }
+  return null;
+}
+
+function parseTime(text) {
+  const t = text.toLowerCase();
+  let m = t.match(/(\d{1,2})[:.](\d{2})/);
+  if (m) return String(+m[1]).padStart(2,"0")+":"+m[2];
+  m = t.match(/в\s+(\d{1,2})(?:\s*час|\s*:\d{2})?/);
+  if (m) return String(+m[1]).padStart(2,"0")+":00";
+  m = t.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (m) {
+    let h = +m[1]; const mins = m[2] || "00";
+    const ampm = (m[3]||"").toLowerCase();
+    if (ampm==="pm" && h<12) h+=12;
+    if (ampm==="am" && h===12) h=0;
+    return String(h).padStart(2,"0")+":"+mins;
+  }
+  return null;
+}
+
+function parseDuration(text) {
+  const t = text.toLowerCase();
+  let m = t.match(/(\d+)\s*(?:мин|min)/);
+  if (m) return +m[1];
+  m = t.match(/(\d+)\s*(?:час|hr|h)\b/);
+  if (m) return +m[1]*60;
+  return 60;
+}
+
+function fmtDate(d) {
+  return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."+d.getFullYear();
+}
+
+function aiParseMessage(text) {
+  const base = new Date(); base.setHours(0,0,0,0);
+  const clean = text.trim();
+  if (!clean) return { reply: "Напишите, что запланировать — например: «встреча с Анной завтра в 15:00».", event: null };
+  const lower = clean.toLowerCase();
+  if (/(привет|hello|hi|здравств)/.test(lower))
+    return { reply: "Привет! Я ChronoMind. Могу создать событие, показать расписание или подсказать свободные слоты. Попробуйте: «созвон с командой в пятницу в 10:00».", event: null };
+  if (/(расписание|что сегодня|what today|покажи день)/.test(lower)) {
+    const target = parseRelativeDay(lower, base) || base;
+    const ds = iso(target);
+    const dayEvents = events.filter(e => e.start === ds);
+    if (!dayEvents.length) return { reply: `На ${fmtDate(target)} событий нет — день свободен.`, event: null };
+    const lines = dayEvents.sort((a,b)=>(a.time||"").localeCompare(b.time||"")).map(e => `• ${e.time||"весь день"} — ${e.title}`);
+    return { reply: `Расписание на ${fmtDate(target)}:\n`+lines.join("\n"), event: null };
+  }
+  if (/свободн|free slot/.test(lower))
+    return { reply: "Свободные окна сегодня: 09:00–10:00, 11:30–12:30, 15:00–16:00. (демо-ответ)", event: null };
+
+  let title = clean;
+  for (const p of [/^(?:создай|добавь|запланируй)\s+/i, /^(?:встречу|созвон|событие)\s+/i, /^meeting\s+/i])
+    title = title.replace(p, "").trim();
+  const eventDate = parseRelativeDay(lower, base) || base;
+  const eventTime = parseTime(lower);
+  const duration = parseDuration(lower);
+  title = title.replace(/,?\s*(?:завтра|сегодня|послезавтра|в\s+\d{1,2}[:.]\d{2}|at\s+\d+).*/i,"").trim().replace(/[,\.]+$/,"");
+  if (title.length < 3) title = "Новое событие";
+  const locM = clean.match(/(?:в|@|at)\s+([A-Za-zА-Яа-я0-9\s\-]+?)(?:\s+завтра|\s+в\s+\d|$)/i);
+  const location = locM ? locM[1].trim() : "";
+  const ev = {
+    id: uid(), title: title.slice(0,80), start: iso(eventDate), end: iso(eventDate),
+    time: eventTime || "", duration_min: duration, location: location.slice(0,60),
+    description: "Создано ассистентом ChronoMind", color: COLORS[events.length % COLORS.length]
+  };
+  const dayLabel = eventDate.getDate() + " " + RU_MONTHS_GEN[eventDate.getMonth()];
+  const timeLabel = eventTime || "весь день";
+  let reply = `Готово — добавил «${ev.title}» на ${dayLabel}, ${timeLabel}.`;
+  if (location) reply += ` Место: ${location}.`;
+  return { reply, event: ev };
+}
+
+function seedEvents() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const samples = [
+    ["Стендап команды",0,"10:00",30,"Zoom","Ежедневный sync"],
+    ["Ревью дизайна",1,"14:00",60,"Конференц-зал B","Макеты v2"],
+    ["Обед с клиентом",3,"12:30",90,"Café Noir",""],
+    ["Демо продукта",7,"16:00",45,"Онлайн","Презентация Q2"],
+    ["Йога",2,"08:00",60,"Дома",""]
+  ];
+  events = samples.map((s,i) => {
+    const d = new Date(today); d.setDate(d.getDate()+s[1]);
+    return { id: uid(), title: s[0], start: iso(d), end: iso(d), time: s[2], duration_min: s[3],
+      location: s[4], description: s[5], color: COLORS[i % COLORS.length] };
+  });
+}
+
+const RU_MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const WEEKDAYS = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+
+let viewYear, viewMonth, selectedDate, events = [], selectedEventId = null;
+
+function iso(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function init() {
+  const t = new Date();
+  viewYear = t.getFullYear();
+  viewMonth = t.getMonth();
+  selectedDate = iso(t);
+  document.getElementById("weekdays").innerHTML = WEEKDAYS.map(w => `<span>${w}</span>`).join("");
+  document.querySelector("#eventForm [name=date]").value = selectedDate;
+  loadEvents();
+  seedChat();
+  bindUI();
+}
+
+function seedChat() {
+  addMsg("bot", "Добро пожаловать в ChronoMind! Спросите расписание или опишите встречу — я добавлю её в календарь.");
+  const hints = ["Что сегодня?", "Созвон в пятницу в 10:00", "Свободные слоты", "Демо продукта послезавтра в 16:00"];
+  const box = document.getElementById("suggestions");
+  hints.forEach(h => {
+    const b = document.createElement("button");
+    b.textContent = h;
+    b.onclick = () => { document.getElementById("chatInput").value = h; document.getElementById("chatForm").requestSubmit(); };
+    box.appendChild(b);
+  });
+}
+
+function bindUI() {
+  document.getElementById("prevMonth").onclick = () => { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); };
+  document.getElementById("nextMonth").onclick = () => { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); };
+  document.getElementById("todayBtn").onclick = () => {
+    const t = new Date();
+    viewYear = t.getFullYear(); viewMonth = t.getMonth(); selectedDate = iso(t); render();
+  };
+  document.getElementById("newEventBtn").onclick = () => openModal();
+  document.getElementById("cancelModal").onclick = closeModal;
+  document.getElementById("overlay").onclick = () => { closeModal(); closeDetail(); };
+  document.getElementById("closeDetail").onclick = closeDetail;
+  document.getElementById("closeDetail2").onclick = closeDetail;
+  document.getElementById("deleteEvent").onclick = deleteSelected;
+  document.getElementById("eventForm").onsubmit = saveManualEvent;
+  document.getElementById("chatForm").onsubmit = sendChat;
+}
+
+function loadEvents() {
+  seedEvents();
+  render();
+}
+
+function render() {
+  document.getElementById("monthLabel").textContent = RU_MONTHS[viewMonth] + " " + viewYear;
+  const first = new Date(viewYear, viewMonth, 1);
+  let start = first.getDay() - 1;
+  if (start < 0) start = 6;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevDays = new Date(viewYear, viewMonth, 0).getDate();
+  const today = iso(new Date());
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  const total = 42;
+  for (let i = 0; i < total; i++) {
+    let dayNum, cellDate, other = false;
+    if (i < start) {
+      dayNum = prevDays - start + i + 1;
+      cellDate = new Date(viewYear, viewMonth - 1, dayNum);
+      other = true;
+    } else if (i >= start + daysInMonth) {
+      dayNum = i - start - daysInMonth + 1;
+      cellDate = new Date(viewYear, viewMonth + 1, dayNum);
+      other = true;
+    } else {
+      dayNum = i - start + 1;
+      cellDate = new Date(viewYear, viewMonth, dayNum);
+    }
+    const ds = iso(cellDate);
+    const dayEvents = events.filter(e => e.start === ds).slice(0, 3);
+    const more = events.filter(e => e.start === ds).length - 3;
+    const el = document.createElement("div");
+    el.className = "day" + (other ? " other" : "") + (ds === today ? " today" : "") + (ds === selectedDate ? " selected" : "");
+    el.innerHTML = `<div class="day-num">${dayNum}</div>` +
+      dayEvents.map(e => `<div class="pill" data-id="${e.id}" style="background:${e.color}">${e.time ? e.time + " " : ""}${e.title}</div>`).join("") +
+      (more > 0 ? `<div class="more">+${more} ещё</div>` : "");
+    el.onclick = ev => {
+      if (ev.target.classList.contains("pill")) {
+        openDetail(ev.target.dataset.id);
+        ev.stopPropagation();
+        return;
+      }
+      selectedDate = ds;
+      document.querySelector("#eventForm [name=date]").value = ds;
+      render();
+    };
+    grid.appendChild(el);
+    el.querySelectorAll(".pill").forEach(p => {
+      p.onclick = e => { e.stopPropagation(); openDetail(p.dataset.id); };
+    });
+  }
+}
+
+function addMsg(role, text) {
+  const c = document.getElementById("chat");
+  const d = document.createElement("div");
+  d.className = "msg " + role;
+  d.textContent = text;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  return d;
+}
+
+function sendChat(e) {
+  e.preventDefault();
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg("user", text);
+  input.value = "";
+  const thinking = addMsg("bot thinking", "Думаю…");
+  setTimeout(() => {
+    const data = aiParseMessage(text);
+    thinking.remove();
+    addMsg("bot", data.reply);
+    if (data.event) {
+      events.push(data.event);
+      selectedDate = data.event.start;
+      render();
+      setTimeout(() => openDetail(data.event.id), 400);
+    }
+  }, 350);
+}
+
+function openModal() {
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("modal").classList.add("show");
+  document.querySelector("#eventForm [name=date]").value = selectedDate;
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+  if (!document.getElementById("detailPanel").classList.contains("open"))
+    document.getElementById("overlay").classList.remove("show");
+}
+
+function saveManualEvent(e) {
+  e.preventDefault();
+  const f = e.target;
+  const ev = {
+    id: uid(),
+    title: f.title.value.trim() || "Без названия",
+    start: f.date.value,
+    end: f.date.value,
+    time: f.time.value,
+    duration_min: 60,
+    location: f.location.value.trim(),
+    description: f.description.value.trim(),
+    color: COLORS[events.length % COLORS.length]
+  };
+  events.push(ev);
+  closeModal();
+  f.reset();
+  f.querySelector("[name=date]").value = selectedDate;
+  render();
+  openDetail(ev.id);
+}
+
+function openDetail(id) {
+  const ev = events.find(x => x.id === id);
+  if (!ev) return;
+  selectedEventId = id;
+  document.getElementById("detailTitle").textContent = ev.title;
+  const when = ev.start.split("-").reverse().join(".") + (ev.time ? " · " + ev.time : " · весь день");
+  document.getElementById("detailBody").innerHTML =
+    `<dt>Когда</dt><dd>${when}</dd>` +
+    `<dt>Длительность</dt><dd>${ev.duration_min} мин</dd>` +
+    (ev.location ? `<dt>Место</dt><dd>${ev.location}</dd>` : "") +
+    (ev.description ? `<dt>Описание</dt><dd>${ev.description}</dd>` : "");
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("detailPanel").classList.add("open");
+}
+
+function closeDetail() {
+  document.getElementById("detailPanel").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+  selectedEventId = null;
+}
+
+function deleteSelected() {
+  if (!selectedEventId) return;
+  events = events.filter(e => e.id !== selectedEventId);
+  closeDetail();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

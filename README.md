@@ -2,6 +2,10 @@
 
 Demo calendar app with an AI-style assistant (rule-based parsing, no external APIs) -- just a canvas for a project
 
+**Live demo:** https://kast20001.github.io/chronomind/
+
+> Страница репозитория на GitHub показывает этот README. Само приложение открывается по ссылке выше (GitHub Pages).
+
 ## Features
 
 - Month calendar view with colored events
