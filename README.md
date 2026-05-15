@@ -1,6 +1,6 @@
 # ChronoMind
 
-Demo calendar app with an AI-style assistant (rule-based parsing, no external APIs).
+Demo calendar app with an AI-style assistant (rule-based parsing, no external APIs) -- just a canvas for a project
 
 ## Features
 
