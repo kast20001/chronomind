@@ -1,44 +1,65 @@
 # ChronoMind
 
-Demo calendar app with an AI-style assistant (rule-based parsing, no external APIs) -- just a canvas for a project
+Календарь с ИИ-ассистентом (демо, без внешних API).
 
-**Live demo:** https://kast20001.github.io/chronomind/
+---
 
-> Страница репозитория на GitHub показывает этот README. Само приложение открывается по ссылке выше (GitHub Pages).
+## Открыть приложение в браузере
 
-## Features
+| Куда нажимать | Ссылка | Что увидите |
+|---------------|--------|-------------|
+| **Онлайн (GitHub Pages)** | **https://kast20001.github.io/chronomind/** | Календарь |
+| Страница репозитория | https://github.com/kast20001/chronomind | Только этот README |
 
-- Month calendar view with colored events
-- AI chat sidebar — create events from natural language (Russian/English)
-- Manual event form, event details panel, delete
-- Sample events seeded on startup (in-memory only)
+На GitHub **нельзя** заменить README на приложение — это разные адреса.  
+Скопируйте и откройте именно: **https://kast20001.github.io/chronomind/**
 
-## Quick start
+В настройках репозитория можно указать **About → Website** ту же ссылку на Pages.
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-pip install -r requirements.txt
-python agent.py
+---
+
+## Запуск на своём компьютере (Flask)
+
+### Вариант 1 — двойной клик (Windows)
+
+Запустите файл **`start.bat`** в папке проекта.  
+Откроется http://127.0.0.1:5000
+
+### Вариант 2 — PowerShell
+
+```powershell
+cd c:\Dev\AI_agent
+py -m pip install -r requirements.txt
+py agent.py
 ```
 
-Opens http://127.0.0.1:5000 in your browser.
+Важно: на Windows часто работает **`py`**, а не `python`.  
+Если пишет «Python was not found» — установите Python с https://www.python.org/downloads/ (галочка «Add to PATH»).
 
-Options:
+### Если страница не открылась сама
 
-```bash
-python agent.py --no-browser
-python agent.py --port 8080
-```
+1. Убедитесь, что в терминале есть строка `Running on http://127.0.0.1:5000`
+2. Откройте вручную: http://127.0.0.1:5000
+3. Другой порт: `py agent.py --port 8080` → http://127.0.0.1:8080
 
-## Example prompts
+---
+
+## Файлы проекта
+
+| Файл | Назначение |
+|------|------------|
+| `index.html` | Версия для GitHub Pages (только браузер) |
+| `agent.py` | Локальный сервер Flask |
+| `start.bat` | Быстрый запуск на Windows |
+
+---
+
+## Примеры фраз в чате
 
 - `созвон с командой завтра в 15:00`
 - `что сегодня?`
 - `свободные слоты`
-- `meeting with team on Friday at 10:00`
 
 ## Stack
 
-- Python 3.10+
-- Flask (single-file app: `agent.py`)
+Python 3.10+, Flask
