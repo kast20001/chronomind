@@ -20,6 +20,15 @@
       --radius: 12px;
       --shadow: 0 8px 32px rgba(0,0,0,.45);
     }
+    [data-theme="light"] {
+      --bg: #f4f5f8;
+      --surface: #fff;
+      --surface2: #eef0f5;
+      --border: #d8dce6;
+      --text: #1a1d26;
+      --muted: #5c6478;
+      --shadow: 0 8px 32px rgba(0,0,0,.12);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "DM Sans", system-ui, sans-serif;
@@ -51,6 +60,18 @@
     }
     .brand h1 { font-size: 1.1rem; font-weight: 600; }
     .brand p { font-size: 0.75rem; color: var(--muted); }
+    .brand-actions { margin-left: auto; display: flex; gap: 6px; }
+    .icon-btn {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .icon-btn:hover { border-color: var(--accent); }
     .ai-badge {
       margin: 0 20px 12px;
       padding: 8px 12px;
@@ -287,6 +308,81 @@
       cursor: pointer;
     }
     .suggestions button:hover { border-color: var(--accent); color: var(--text); }
+    .upcoming {
+      margin: 0 16px 12px;
+      padding: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .upcoming h3 { font-size: 0.72rem; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: .04em; }
+    .upcoming-item {
+      display: flex; gap: 8px; align-items: flex-start;
+      padding: 6px 0; border-bottom: 1px solid var(--border);
+      cursor: pointer; font-size: 0.82rem;
+    }
+    .upcoming-item:last-child { border-bottom: none; }
+    .upcoming-item:hover { opacity: .85; }
+    .upcoming-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .upcoming-meta { color: var(--muted); font-size: 0.72rem; }
+    .upcoming-empty { font-size: 0.8rem; color: var(--muted); }
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      width: 200px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px 8px 32px;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.85rem;
+    }
+    .search-wrap::before {
+      content: "⌕"; position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%); color: var(--muted); font-size: 0.9rem;
+    }
+    .day-agenda {
+      margin: 0 24px 16px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: none;
+    }
+    .day-agenda.show { display: block; }
+    .day-agenda h3 { font-size: 0.9rem; margin-bottom: 10px; }
+    .day-agenda ul { list-style: none; }
+    .day-agenda li {
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; gap: 12px;
+      cursor: pointer; font-size: 0.88rem;
+    }
+    .day-agenda li:last-child { border-bottom: none; }
+    .pill.done { opacity: .45; text-decoration: line-through; }
+    .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+    .color-picker button {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+      cursor: pointer;
+    }
+    .color-picker button.active { border-color: var(--text); transform: scale(1.1); }
+    .detail-actions { flex-wrap: wrap; }
+    .detail-actions .btn { flex: 1; min-width: 100px; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      opacity: 0;
+      transition: transform .25s, opacity .25s;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .pill.hidden-by-search { display: none; }
     @media (max-width: 900px) {
       body { flex-direction: column; }
       .sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
@@ -299,10 +395,15 @@
       <div class="logo">CM</div>
       <div>
         <h1>ChronoMind</h1>
-        <p>Календарь с ИИ-ассистентом</p>
+        <p>Календарь с ассистентом</p>
+      </div>
+      <div class="brand-actions">
+        <button type="button" class="icon-btn" id="themeBtn" title="Светлая/тёмная тема">☀</button>
       </div>
     </div>
-    <div class="ai-badge">● Работает в браузере (GitHub Pages)</div>
+    <div class="ai-badge">● События сохраняются в браузере</div>
+    <div class="upcoming" id="upcoming"></div>
+    
     <div class="suggestions" id="suggestions"></div>
     <div class="chat" id="chat"></div>
     <form class="chat-input" id="chatForm">
@@ -320,9 +421,14 @@
         <h2 id="monthLabel" style="display:inline;margin-left:12px"></h2>
       </div>
       <div class="toolbar-actions">
+        <div class="search-wrap">
+          <input type="search" id="searchInput" placeholder="Поиск…" autocomplete="off" />
+        </div>
+        <button class="btn" id="copyDayBtn" title="Скопировать день">📋</button>
         <button class="btn primary" id="newEventBtn">+ Событие</button>
       </div>
     </header>
+    <div class="day-agenda" id="dayAgenda"></div>
     <div class="cal-wrap">
       <div class="weekdays" id="weekdays"></div>
       <div class="grid" id="grid"></div>
@@ -337,17 +443,23 @@
     </div>
     <dl class="detail-body" id="detailBody"></dl>
     <div class="detail-actions">
+      <button class="btn" id="editEvent">Изменить</button>
+      <button class="btn" id="dupEvent">Дублировать</button>
+      <button class="btn" id="toggleDone">Выполнено</button>
       <button class="btn danger" id="deleteEvent">Удалить</button>
       <button class="btn" id="closeDetail2">Закрыть</button>
     </div>
   </aside>
 
   <div class="modal" id="modal">
-    <h3>Новое событие</h3>
+    <h3 id="modalTitle">Новое событие</h3>
     <form id="eventForm">
+      <input type="hidden" name="color" id="eventColor" />
       <div class="field"><label>Название</label><input name="title" required /></div>
       <div class="field"><label>Дата</label><input name="date" type="date" required /></div>
       <div class="field"><label>Время (пусто = весь день)</label><input name="time" type="time" /></div>
+      <div class="field"><label>Длительность (мин)</label><input name="duration" type="number" min="5" step="5" value="60" /></div>
+      <div class="field"><label>Цвет</label><div class="color-picker" id="colorPicker"></div></div>
       <div class="field"><label>Место</label><input name="location" /></div>
       <div class="field"><label>Описание</label><textarea name="description"></textarea></div>
       <div class="modal-actions">
@@ -356,6 +468,7 @@
       </div>
     </form>
   </div>
+  <div class="toast" id="toast"></div>
 
 <script>
 
@@ -451,7 +564,7 @@ function aiParseMessage(text) {
   const ev = {
     id: uid(), title: title.slice(0,80), start: iso(eventDate), end: iso(eventDate),
     time: eventTime || "", duration_min: duration, location: location.slice(0,60),
-    description: "Создано ассистентом ChronoMind", color: COLORS[events.length % COLORS.length]
+    description: "Создано ассистентом ChronoMind", color: COLORS[events.length % COLORS.length], done: false
   };
   const dayLabel = eventDate.getDate() + " " + RU_MONTHS_GEN[eventDate.getMonth()];
   const timeLabel = eventTime || "весь день";
@@ -472,17 +585,126 @@ function seedEvents() {
   events = samples.map((s,i) => {
     const d = new Date(today); d.setDate(d.getDate()+s[1]);
     return { id: uid(), title: s[0], start: iso(d), end: iso(d), time: s[2], duration_min: s[3],
-      location: s[4], description: s[5], color: COLORS[i % COLORS.length] };
+      location: s[4], description: s[5], color: COLORS[i % COLORS.length], done: false };
   });
 }
 
 const RU_MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const WEEKDAYS = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const STORAGE_KEY = "chronomind_events_v1";
+const THEME_KEY = "chronomind_theme";
 
 let viewYear, viewMonth, selectedDate, events = [], selectedEventId = null;
+let editingId = null, searchQuery = "", pickedColor = COLORS[0];
 
 function iso(d) {
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function persist() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch (_) {}
+}
+
+function loadStored() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data) && data.length) { events = data; return true; }
+  } catch (_) {}
+  return false;
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  document.getElementById("themeBtn").textContent = theme === "light" ? "🌙" : "☀";
+  try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(saved === "light" ? "light" : "dark");
+}
+
+function initColorPicker() {
+  const box = document.getElementById("colorPicker");
+  box.innerHTML = "";
+  COLORS.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.style.background = c;
+    if (i === 0) b.classList.add("active");
+    b.onclick = () => {
+      pickedColor = c;
+      document.getElementById("eventColor").value = c;
+      box.querySelectorAll("button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+    };
+    box.appendChild(b);
+  });
+  document.getElementById("eventColor").value = pickedColor;
+}
+
+function eventMatchesSearch(ev) {
+  if (!searchQuery) return true;
+  const q = searchQuery.toLowerCase();
+  return [ev.title, ev.location, ev.description].some(s => (s || "").toLowerCase().includes(q));
+}
+
+function renderUpcoming() {
+  const box = document.getElementById("upcoming");
+  const today = iso(new Date());
+  const upcoming = events
+    .filter(e => e.start >= today && !e.done)
+    .sort((a, b) => (a.start + (a.time || "99:99")).localeCompare(b.start + (b.time || "99:99")))
+    .slice(0, 5);
+  if (!upcoming.length) {
+    box.innerHTML = "<h3>Ближайшие</h3><p class=\"upcoming-empty\">Нет предстоящих событий</p>";
+    return;
+  }
+  box.innerHTML = "<h3>Ближайшие</h3>" + upcoming.map(e => {
+    const d = e.start.split("-").reverse().slice(0, 2).join(".");
+    return `<div class="upcoming-item" data-id="${e.id}">
+      <span class="upcoming-dot" style="background:${e.color}"></span>
+      <div><div>${e.title}</div><div class="upcoming-meta">${d}${e.time ? " · " + e.time : ""}</div></div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".upcoming-item").forEach(el => {
+    el.onclick = () => { openDetail(el.dataset.id); jumpToDate(events.find(x => x.id === el.dataset.id)?.start); };
+  });
+}
+
+function renderDayAgenda() {
+  const box = document.getElementById("dayAgenda");
+  const dayEvents = events.filter(e => e.start === selectedDate).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  if (!dayEvents.length) { box.classList.remove("show"); box.innerHTML = ""; return; }
+  const [y, m, d] = selectedDate.split("-");
+  box.classList.add("show");
+  box.innerHTML = `<h3>${d}.${m}.${y} — ${dayEvents.length} событ.</h3><ul>` +
+    dayEvents.map(e => `<li data-id="${e.id}"><span>${e.time || "весь день"} · ${e.title}</span><span style="color:${e.color}">●</span></li>`).join("") +
+    "</ul>";
+  box.querySelectorAll("li").forEach(li => li.onclick = () => openDetail(li.dataset.id));
+}
+
+function jumpToDate(ds) {
+  if (!ds) return;
+  const [y, m] = ds.split("-").map(Number);
+  viewYear = y; viewMonth = m - 1; selectedDate = ds; render();
+}
+
+function copySelectedDay() {
+  const dayEvents = events.filter(e => e.start === selectedDate).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  if (!dayEvents.length) { toast("На этот день событий нет"); return; }
+  const text = dayEvents.map(e => `${e.time || "весь день"} — ${e.title}${e.location ? " (" + e.location + ")" : ""}`).join("\n");
+  navigator.clipboard.writeText(text).then(() => toast("Расписание скопировано")).catch(() => toast("Не удалось скопировать"));
 }
 
 function init() {
@@ -492,6 +714,8 @@ function init() {
   selectedDate = iso(t);
   document.getElementById("weekdays").innerHTML = WEEKDAYS.map(w => `<span>${w}</span>`).join("");
   document.querySelector("#eventForm [name=date]").value = selectedDate;
+  initTheme();
+  initColorPicker();
   loadEvents();
   seedChat();
   bindUI();
@@ -522,17 +746,39 @@ function bindUI() {
   document.getElementById("closeDetail").onclick = closeDetail;
   document.getElementById("closeDetail2").onclick = closeDetail;
   document.getElementById("deleteEvent").onclick = deleteSelected;
+  document.getElementById("editEvent").onclick = () => { if (selectedEventId) openModal(selectedEventId); };
+  document.getElementById("dupEvent").onclick = duplicateSelected;
+  document.getElementById("toggleDone").onclick = toggleDoneSelected;
+  document.getElementById("copyDayBtn").onclick = copySelectedDay;
+  document.getElementById("themeBtn").onclick = () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    applyTheme(next);
+  };
+  document.getElementById("searchInput").oninput = e => { searchQuery = e.target.value.trim(); render(); };
   document.getElementById("eventForm").onsubmit = saveManualEvent;
   document.getElementById("chatForm").onsubmit = sendChat;
+  document.addEventListener("keydown", e => {
+    if (e.target.matches("input, textarea")) {
+      if (e.key === "Escape") { closeModal(); closeDetail(); }
+      return;
+    }
+    if (e.key === "ArrowLeft") document.getElementById("prevMonth").click();
+    if (e.key === "ArrowRight") document.getElementById("nextMonth").click();
+    if (e.key === "n" || e.key === "N") openModal();
+    if (e.key === "Escape") { closeModal(); closeDetail(); }
+  });
 }
 
 function loadEvents() {
-  seedEvents();
+  if (!loadStored()) seedEvents();
+  events.forEach(e => { if (e.done === undefined) e.done = false; });
   render();
 }
 
 function render() {
   document.getElementById("monthLabel").textContent = RU_MONTHS[viewMonth] + " " + viewYear;
+  renderUpcoming();
+  renderDayAgenda();
   const first = new Date(viewYear, viewMonth, 1);
   let start = first.getDay() - 1;
   if (start < 0) start = 6;
@@ -557,12 +803,14 @@ function render() {
       cellDate = new Date(viewYear, viewMonth, dayNum);
     }
     const ds = iso(cellDate);
-    const dayEvents = events.filter(e => e.start === ds).slice(0, 3);
-    const more = events.filter(e => e.start === ds).length - 3;
+    const allDay = events.filter(e => e.start === ds);
+    const visible = searchQuery ? allDay.filter(eventMatchesSearch) : allDay;
+    const dayEvents = visible.slice(0, 3);
+    const more = visible.length - 3;
     const el = document.createElement("div");
     el.className = "day" + (other ? " other" : "") + (ds === today ? " today" : "") + (ds === selectedDate ? " selected" : "");
     el.innerHTML = `<div class="day-num">${dayNum}</div>` +
-      dayEvents.map(e => `<div class="pill" data-id="${e.id}" style="background:${e.color}">${e.time ? e.time + " " : ""}${e.title}</div>`).join("") +
+      dayEvents.map(e => `<div class="pill${e.done ? " done" : ""}" data-id="${e.id}" style="background:${e.color}">${e.time ? e.time + " " : ""}${e.title}</div>`).join("") +
       (more > 0 ? `<div class="more">+${more} ещё</div>` : "");
     el.onclick = ev => {
       if (ev.target.classList.contains("pill")) {
@@ -604,21 +852,48 @@ function sendChat(e) {
     thinking.remove();
     addMsg("bot", data.reply);
     if (data.event) {
+      if (!data.event.done) data.event.done = false;
       events.push(data.event);
+      persist();
       selectedDate = data.event.start;
       render();
+      toast("Событие добавлено");
       setTimeout(() => openDetail(data.event.id), 400);
     }
   }, 350);
 }
 
-function openModal() {
+function openModal(editId) {
+  editingId = editId || null;
+  const f = document.getElementById("eventForm");
+  document.getElementById("modalTitle").textContent = editingId ? "Редактировать" : "Новое событие";
+  f.reset();
+  if (editingId) {
+    const ev = events.find(x => x.id === editingId);
+    if (ev) {
+      f.title.value = ev.title;
+      f.date.value = ev.start;
+      f.time.value = ev.time || "";
+      f.duration.value = ev.duration_min || 60;
+      f.location.value = ev.location || "";
+      f.description.value = ev.description || "";
+      pickedColor = ev.color;
+      document.getElementById("eventColor").value = ev.color;
+      document.querySelectorAll("#colorPicker button").forEach(b => {
+        b.classList.toggle("active", b.style.background === ev.color || b.style.backgroundColor === ev.color);
+      });
+    }
+  } else {
+    f.querySelector("[name=date]").value = selectedDate;
+    pickedColor = COLORS[events.length % COLORS.length];
+    document.getElementById("eventColor").value = pickedColor;
+  }
   document.getElementById("overlay").classList.add("show");
   document.getElementById("modal").classList.add("show");
-  document.querySelector("#eventForm [name=date]").value = selectedDate;
 }
 
 function closeModal() {
+  editingId = null;
   document.getElementById("modal").classList.remove("show");
   if (!document.getElementById("detailPanel").classList.contains("open"))
     document.getElementById("overlay").classList.remove("show");
@@ -627,21 +902,30 @@ function closeModal() {
 function saveManualEvent(e) {
   e.preventDefault();
   const f = e.target;
-  const ev = {
-    id: uid(),
+  const payload = {
     title: f.title.value.trim() || "Без названия",
     start: f.date.value,
     end: f.date.value,
     time: f.time.value,
-    duration_min: 60,
+    duration_min: parseInt(f.duration.value, 10) || 60,
     location: f.location.value.trim(),
     description: f.description.value.trim(),
-    color: COLORS[events.length % COLORS.length]
+    color: document.getElementById("eventColor").value || pickedColor,
+    done: false
   };
-  events.push(ev);
+  let ev;
+  if (editingId) {
+    ev = events.find(x => x.id === editingId);
+    if (ev) Object.assign(ev, payload);
+    toast("Событие обновлено");
+  } else {
+    ev = { id: uid(), ...payload };
+    events.push(ev);
+    toast("Событие создано");
+  }
+  persist();
   closeModal();
-  f.reset();
-  f.querySelector("[name=date]").value = selectedDate;
+  selectedDate = ev.start;
   render();
   openDetail(ev.id);
 }
@@ -650,13 +934,15 @@ function openDetail(id) {
   const ev = events.find(x => x.id === id);
   if (!ev) return;
   selectedEventId = id;
-  document.getElementById("detailTitle").textContent = ev.title;
+  document.getElementById("detailTitle").textContent = (ev.done ? "✓ " : "") + ev.title;
   const when = ev.start.split("-").reverse().join(".") + (ev.time ? " · " + ev.time : " · весь день");
   document.getElementById("detailBody").innerHTML =
     `<dt>Когда</dt><dd>${when}</dd>` +
     `<dt>Длительность</dt><dd>${ev.duration_min} мин</dd>` +
+    `<dt>Статус</dt><dd>${ev.done ? "Выполнено" : "Запланировано"}</dd>` +
     (ev.location ? `<dt>Место</dt><dd>${ev.location}</dd>` : "") +
     (ev.description ? `<dt>Описание</dt><dd>${ev.description}</dd>` : "");
+  document.getElementById("toggleDone").textContent = ev.done ? "Вернуть в план" : "Выполнено";
   document.getElementById("overlay").classList.add("show");
   document.getElementById("detailPanel").classList.add("open");
 }
@@ -670,8 +956,31 @@ function closeDetail() {
 function deleteSelected() {
   if (!selectedEventId) return;
   events = events.filter(e => e.id !== selectedEventId);
+  persist();
   closeDetail();
   render();
+  toast("Событие удалено");
+}
+
+function duplicateSelected() {
+  const ev = events.find(x => x.id === selectedEventId);
+  if (!ev) return;
+  const copy = { ...ev, id: uid(), title: ev.title + " (копия)", done: false };
+  events.push(copy);
+  persist();
+  render();
+  openDetail(copy.id);
+  toast("Событие продублировано");
+}
+
+function toggleDoneSelected() {
+  const ev = events.find(x => x.id === selectedEventId);
+  if (!ev) return;
+  ev.done = !ev.done;
+  persist();
+  render();
+  openDetail(ev.id);
+  toast(ev.done ? "Отмечено выполненным" : "Снова в плане");
 }
 
 init();
